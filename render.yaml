@@ -1,0 +1,70 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repo. Creates the API and the web app.
+# Values marked `sync: false` are asked for during setup (secrets are never stored in the repo).
+services:
+  - type: web
+    name: livetruth-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: starter            # a persistent disk needs a paid instance; see docs/GO_LIVE.md for the free option
+    healthCheckPath: /api/health
+    disk:
+      name: livetruth-data
+      mountPath: /data
+      sizeGB: 5
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: STORAGE_DIR
+        value: /data
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false          # MongoDB Atlas connection string
+      - key: MONGO_DB
+        value: livetruth
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: gpt-4o-mini
+      - key: STT_PROVIDER
+        value: openai
+      - key: SEARCH_PROVIDER
+        value: tavily
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: FACTCHECK_API_KEY
+        sync: false          # optional: leave empty to skip
+      - key: CORS_ORIGINS
+        sync: false          # the web app's URL, e.g. https://livetruth-web.onrender.com
+      - key: VECTOR_STORE
+        value: memory
+      - key: SEARCH_CACHE_HOURS
+        value: "72"
+      - key: MAX_CLAIMS_PER_VIDEO
+        value: "15"
+      - key: MAX_VIDEO_MINUTES
+        value: "20"
+      - key: RETENTION_DAYS
+        value: "30"
+
+  - type: web
+    name: livetruth-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install --no-audit --no-fund && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false          # the API's URL, e.g. https://livetruth-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff

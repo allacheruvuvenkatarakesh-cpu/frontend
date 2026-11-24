@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LiveTruth Shield Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Telugu:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a shipped SaaS product, calm and exact, the app itself is the picture
+   IDEA a broadcast monitor with a fact-check ticker: the video above, its truth timeline as the scrub bar
+   PICTURE the analysis screen: simulated player with live captions + colour-coded claim timeline
+   COLOUR white / deep navy #14213d, verdict green #16a34a, red #dc2626, yellow #eab308, grey #9ca3af
+   TYPE Plus Jakarta Sans display + Inter text (the app's own type)
+   LAYOUT sidebar + content; analysis: player and timeline left, verdict cards right; one column under 900px */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0b1428);--paper:light-dark(#f6f8fb,#101b33);--card:light-dark(#ffffff,#14213d);--ink:light-dark(#14213d,#e8eef8);--muted:light-dark(#4a6290,#9fb3d6);--line:light-dark(#dde5f0,#24365c);--navy:#14213d;--navy2:light-dark(#293f68,#c4d1e5);--tint:light-dark(#eef2f8,#1a2a4c);--ok:#16a34a;--bad:#dc2626;--mid:#eab308;--unk:#9ca3af;--warn:#ea580c}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Plus Jakarta Sans",Inter,sans-serif;letter-spacing:-.02em;line-height:1.1;margin:0}
+h1{font-size:clamp(24px,3vw,32px);text-wrap:balance}h2{font-size:17px}h3{font-size:15px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid #6482b5;outline-offset:2px}
+[lang=hi]{font-family:"Noto Sans Devanagari",Inter,sans-serif}[lang=te]{font-family:"Noto Sans Telugu",Inter,sans-serif}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
+.side{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:10px;font:800 17px "Plus Jakarta Sans",sans-serif;padding:0 6px;color:var(--ink);text-decoration:none}
+.logo span{opacity:.65;font-weight:600}
+.logo svg{flex:none}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--muted);text-decoration:none;font-weight:500;min-height:42px}
+.nav a:hover{background:var(--tint)}.nav a.on{background:var(--navy);color:#fff}
+:root[data-theme=dark] .nav a.on{background:#2b4478}
+.who{margin-top:auto;border-top:1px solid var(--line);padding:14px 8px 0;font-size:13px;color:var(--muted)}
+.who b{display:block;color:var(--ink)}
+main{padding:24px clamp(16px,3vw,36px) 48px;max-width:1280px;width:100%}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.sub{color:var(--muted);font-size:14px;margin:4px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.grid{display:grid;gap:18px}
+.two{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:14px;color:var(--ink);text-decoration:none}
+.btn:hover{background:var(--tint)}.btn.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+:root[data-theme=dark] .btn.pri{background:#2b4478;border-color:#2b4478}
+.btn:disabled{opacity:.5;cursor:default}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.v-verified{background:color-mix(in srgb,var(--ok) 14%,transparent);color:light-dark(#166534,#86efac)}
+.v-false{background:color-mix(in srgb,var(--bad) 14%,transparent);color:light-dark(#991b1b,#fca5a5)}
+.v-misleading{background:color-mix(in srgb,var(--mid) 20%,transparent);color:light-dark(#854d0e,#fde68a)}
+.v-unverified{background:color-mix(in srgb,var(--unk) 20%,transparent);color:light-dark(#4b5563,#d1d5db)}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px}
+.muted{color:var(--muted)}.small{font-size:13px}
+input.in,select.in{width:100%;min-height:44px;border:1px solid var(--line);border-radius:11px;padding:9px 12px;background:var(--card);font-size:16px}
+label.lb{display:block;font-weight:600;font-size:13px;margin:0 0 6px}
+/* player */
+.player{position:relative;border-radius:16px;overflow:hidden;background:#0b1428;aspect-ratio:16/9}
+.player svg{position:absolute;inset:0;width:100%;height:100%}
+.cap{position:absolute;left:5%;right:5%;bottom:13%;text-align:center;color:#fff;font-weight:600;font-size:clamp(13px,1.7vw,18px);text-shadow:0 1px 3px #000;pointer-events:none}
+.ctl{display:flex;align-items:center;gap:10px;margin-top:10px}
+.ctl .t{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);white-space:nowrap}
+.tl{position:relative;height:34px;border-radius:9px;background:var(--tint);flex:1;cursor:pointer}
+.tl .seg{position:absolute;top:0;bottom:0;border-radius:6px;border:2px solid var(--card)}
+.tl .seg.sel{outline:2px solid var(--ink);outline-offset:1px}
+.tl .head{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-top:8px}
+/* claims */
+.claim{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:14px;padding:14px;background:var(--card)}
+.claim.sel{box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent)}
+.claim p{margin:8px 0 0}
+.cite{border:0;background:var(--tint);border-radius:5px;padding:0 5px;font:700 11px ui-monospace,monospace;color:var(--ink)}
+.meter{display:inline-block;width:80px;height:6px;border-radius:9px;background:var(--tint);overflow:hidden;vertical-align:middle}
+.meter i{display:block;height:100%}
+.ev{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:13px;background:var(--paper)}
+.ev.hi{border-color:var(--navy2)}
+.flag{margin-top:10px;border:1px solid color-mix(in srgb,var(--mid) 50%,transparent);background:color-mix(in srgb,var(--mid) 9%,transparent);border-radius:12px;padding:10px 12px;font-size:13px}
+.trust{border:0;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
+.t-high{background:color-mix(in srgb,var(--ok) 14%,transparent);color:light-dark(#166534,#86efac)}
+.t-medium{background:var(--tint);color:var(--navy2)}
+.t-low{background:color-mix(in srgb,var(--warn) 14%,transparent);color:light-dark(#9a3412,#fdba74)}
+.sig{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px;font-size:12px;margin-top:6px}
+.sig .m{height:5px;border-radius:9px;background:var(--tint);margin-top:7px;overflow:hidden}.sig .m i{display:block;height:100%;background:var(--navy2)}
+.tr{display:flex;gap:10px;padding:6px 8px;border-radius:8px;width:100%;text-align:left;border:0;background:none;font-size:14px}
+.tr:hover{background:var(--tint)}.tr.now{background:var(--tint)}
+.tr .mono{color:var(--muted);flex:none;width:38px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font:800 26px "Plus Jakarta Sans",sans-serif;font-variant-numeric:tabular-nums}
+.hbar{display:grid;grid-template-columns:120px minmax(0,1fr) 34px;gap:10px;align-items:center;font-size:13px;margin-top:6px}
+.hbar .m{height:10px;border-radius:9px;background:var(--tint);overflow:hidden}.hbar .m i{display:block;height:100%}
+.hbar span:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.row:hover{background:var(--tint)}
+.mini{display:flex;width:110px;height:7px;border-radius:9px;overflow:hidden;background:var(--tint);flex:none}
+.stages{display:grid;gap:10px;margin-top:14px}
+.stage{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted)}
+.stage i{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:12px;flex:none}
+.stage.done{color:var(--ink)}.stage.done i{background:var(--navy);border-color:var(--navy);color:#fff}
+.stage.act{color:var(--ink);font-weight:600}.stage.act i{border-color:var(--navy2);animation:spin 1s linear infinite;border-top-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog{height:8px;border-radius:9px;background:var(--tint);overflow:hidden;margin-top:12px}.prog i{display:block;height:100%;background:var(--navy2);transition:width .4s}
+.tabs{display:flex;gap:4px;background:var(--tint);border-radius:12px;padding:4px}
+.tabs button{flex:1;border:0;background:none;border-radius:9px;padding:9px;font-weight:600;color:var(--muted)}
+.tabs button.on{background:var(--navy);color:#fff}
+.note{font-size:12px;color:var(--muted)}
+.banner{border-radius:14px;padding:14px 16px;border:1px solid}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}
+.pair>div{background:var(--paper);border-radius:12px;padding:10px 12px}
+.gwrap{position:relative;height:560px;overflow:auto;border-radius:14px;background:var(--paper);border:1px solid var(--line)}
+.gwrap svg{display:block}
+.node{cursor:pointer}
+.toast{position:fixed;right:18px;bottom:18px;background:var(--navy);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;max-width:340px;box-shadow:0 8px 30px #0003;transition:opacity .3s;z-index:9}
+.hero{background:var(--navy);color:#fff;border-radius:20px;padding:clamp(22px,4vw,44px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:center}
+.hero h1{font-size:clamp(28px,4vw,46px);color:#fff}
+.hero p{color:#c4d1e5;font-size:17px;max-width:34em}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:18px}
+.mb{display:none}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:sticky;top:0;height:auto;flex-direction:row;align-items:center;padding:10px 12px;gap:8px;z-index:5;border-right:0;border-bottom:1px solid var(--line)}.nav{flex-direction:row;overflow-x:auto;scrollbar-width:none}.nav a{white-space:nowrap;padding:8px 10px}.nav a .lbl{display:none}.who{display:none}.two{grid-template-columns:1fr}.hero{grid-template-columns:1fr}}
+@media(max-width:600px){.pair{grid-template-columns:1fr}.hbar{grid-template-columns:90px minmax(0,1fr) 30px}.logo span{display:none}.nav a .lbl{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <a class="logo" href="#landing"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 6.5v8.2c0 7.3 5 13.4 12 15.3 7-1.9 12-8 12-15.3V6.5L16 2z" fill="currentColor"/><path d="m10.5 16.2 3.6 3.6 7.4-7.6" fill="none" stroke="var(--card)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>LiveTruth <span>Shield</span></a>
+    <nav class="nav" id="nav"></nav>
+    <div class="who"><b>Demo User</b>demo@livetruth.app<br><span class="note">Prototype with sample data</span></div>
+  </aside>
+  <main id="view" tabindex="-1"></main>
+</div>
+<div class="toast" id="toast" style="opacity:0" role="status" aria-live="polite"></div>
+<script>
+{
+/* ---------------- sample data (mirrors the project's demo seed; evidence lines are summaries, not quotes) ---------------- */
+const COLORS={verified:'#16a34a',false:'#dc2626',misleading:'#eab308',unverified:'#9ca3af'};
+const LABELS={en:{verified:'Verified',false:'False',misleading:'Misleading',unverified:'Insufficient Evidence'},
+ hi:{verified:'सत्यापित',false:'गलत',misleading:'भ्रामक',unverified:'अपर्याप्त साक्ष्य'},
+ te:{verified:'ధృవీకరించబడింది',false:'తప్పు',misleading:'తప్పుదోవ పట్టించేది',unverified:'తగిన ఆధారాలు లేవు'}};
+const W=(t)=>'https://en.wikipedia.org/wiki/'+t;
+const trust=(lvl,score,cor)=>({level:lvl,score,signals:[['Publisher','en.wikipedia.org','Reference work (encyclopedia)',.7],['Primary source','no','Secondary write-up; links to primary sources',.4],['Author','community-edited','No single named author',.3],['Date','revision dated','Publication date given',1],['References','40+ cited sources','Cites its sources',1],['Corroboration',cor+' other site(s) agree',cor?'Independently corroborated':'No other independent source takes the same position',cor?1:.2]]});
+const SEGS=[[0,4.2,'Hey everyone, welcome back to the channel.'],[4.2,10.8,'Today I want to talk about some facts you probably learned in school.'],[10.8,17.5,'First, the Great Wall of China is the only man-made structure visible from the Moon with the naked eye.'],[17.5,23.9,'Second, Mount Everest is the highest mountain above sea level at about 8,849 metres.'],[23.9,30.1,'And did you know humans only use ten percent of their brains?'],[30.1,36.4,'Napoleon Bonaparte was famously tiny, much shorter than the average man of his time.'],[36.4,41,'I think that makes history way more fun, honestly.'],[41,47.6,'Water boils at 100 degrees Celsius at sea level.'],[47.6,52,'Smash that like button and subscribe!']];
+const CLAIMS=[
+ {id:'c1',code:'CLM001',s:10.8,e:17.5,type:'scientific',v:'false',conf:.86,text:'The Great Wall of China is visible from the Moon with the naked eye.',
+  hi:'चीन की महान दीवार चंद्रमा से नंगी आँखों से दिखाई देती है।',te:'చైనా మహా కుడ్యం చంద్రుని నుంచి కంటితో కనిపిస్తుంది.',
+  why:'Astronaut accounts summarised in the cited article say the wall cannot be seen with the naked eye from the Moon [E1].',
+  ev:[{t:'Great Wall of China',u:W('Great_Wall_of_China'),st:'refutes',sn:'The section on visibility from space says the wall is not visible to the naked eye from the Moon.',tr:trust('medium',.68,0)}]},
+ {id:'c2',code:'CLM002',s:17.5,e:23.9,type:'scientific',v:'verified',conf:.82,text:'Mount Everest is the highest mountain above sea level, at about 8,849 metres.',
+  hi:'माउंट एवरेस्ट समुद्र तल से सबसे ऊँचा पर्वत है, लगभग 8,849 मीटर।',te:'ఎవరెస్ట్ పర్వతం సముద్ర మట్టం నుంచి అత్యంత ఎత్తైన పర్వతం, సుమారు 8,849 మీటర్లు.',
+  why:'The cited article gives Everest’s elevation as 8,849 m, the highest above sea level [E1].',
+  ev:[{t:'Mount Everest',u:W('Mount_Everest'),st:'supports',sn:'Everest is described as Earth’s highest mountain above sea level, with a 2020 survey height of 8,848.86 m.',tr:trust('medium',.68,0)}]},
+ {id:'c3',code:'CLM003',s:23.9,e:30.1,type:'scientific',v:'false',conf:.84,text:'Humans only use ten percent of their brains.',
+  hi:'मनुष्य अपने मस्तिष्क का केवल दस प्रतिशत उपयोग करते हैं।',te:'మనుషులు తమ మెదడులో కేవలం పది శాతం మాత్రమే ఉపయోగిస్తారు.',
+  why:'The cited article describes the ten-percent idea as a myth contradicted by brain imaging [E1].',
+  ev:[{t:'Ten percent of the brain myth',u:W('Ten_percent_of_the_brain_myth'),st:'refutes',sn:'Imaging shows activity throughout the brain, so the 10% figure is a myth.',tr:trust('medium',.68,0)}]},
+ {id:'c4',code:'CLM004',s:30.1,e:36.4,type:'historical',v:'misleading',conf:.61,text:'Napoleon Bonaparte was much shorter than the average man of his time.',
+  hi:'नेपोलियन बोनापार्ट अपने समय के औसत व्यक्ति से बहुत छोटे कद के थे।',te:'నెపోలియన్ బోనపార్ట్ తన కాలపు సగటు మనిషి కంటే చాలా పొట్టి.',
+  why:'Napoleon was around average height for his era; the “tiny” image came from unit confusion and propaganda [E1].',
+  flag:{risk:'medium',label:'Missing important information',text:'His recorded height used French units; converted, it is roughly average for the period.'},
+  ev:[{t:'Napoleon complex',u:W('Napoleon_complex'),st:'mixed',sn:'Napoleon’s height was roughly average for his time; the short image is a misconception.',tr:trust('medium',.66,0)}]},
+ {id:'c5',code:'CLM005',s:41,e:47.6,type:'scientific',v:'unverified',conf:null,text:'Water boils at 100 degrees Celsius at sea level.',
+  hi:'समुद्र तल पर पानी 100 डिग्री सेल्सियस पर उबलता है।',te:'సముద్ర మట్టం వద్ద నీరు 100 డిగ్రీల సెల్సియస్ వద్ద మరుగుతుంది.',
+  why:'In this sample no retrieved source addressed the claim, so no verdict is given.',ev:[]}];
+const DUR=52, B_CLAIMS=[{code:'CLM001',s:5,text:'The Great Wall of China cannot be seen from the Moon with the naked eye.',v:'verified'},{code:'CLM002',s:12.4,text:'Mount Everest is the highest mountain above sea level at 8,848 metres.',v:'verified'},{code:'CLM003',s:19,text:'People only use ten percent of their brains.',v:'false'}];
+const HISTORY=[{id:'a',title:"Demo: 'Facts you learned in school'",src:'Upload',when:'24 Nov 2026, 21:40',status:'done',rating:'Mostly Inaccurate',counts:{verified:1,false:2,misleading:1,unverified:1}},
+ {id:'b',title:"Demo: 'Space and science myths'",src:'Upload',when:'24 Nov 2026, 21:41',status:'done',rating:'Mixed Accuracy',counts:{verified:2,false:1,misleading:0,unverified:0}},
+ {id:'x',title:'Private vlog link',src:'YouTube',when:'24 Nov 2026, 20:12',status:'failed',rating:'This video is private.',counts:{}}];
+
+/* ---------------- state ---------------- */
+const S={t:0,playing:false,sel:null,lang:'en',open:{},versions:[{v:1,hash:'8cc3281ed9102187',when:'24 Nov 2026, 21:40',trigger:'First analysis',score:36,grade:'B',changes:null}],
+ rechecked:false,auth:'done',gsel:null,tab:'url',proc:null};
+const $=(s,r=document)=>r.querySelector(s);
+const esc=(x)=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=(s)=>{s=Math.max(0,Math.floor(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const lab=(v,l=S.lang)=>(LABELS[l]||LABELS.en)[v];
+const chip=(v,l)=>`<span class="chip v-${v}"><span class="dot" style="background:${COLORS[v]}"></span>${esc(lab(v,l))}</span>`;
+const counts=()=>CLAIMS.reduce((a,c)=>(a[c.v]=(a[c.v]||0)+1,a),{verified:0,false:0,misleading:0,unverified:0});
+function score(){const d=CLAIMS.filter(c=>c.v!=='unverified');const p={verified:100,misleading:50,false:0};const w=d.map(c=>Math.max(c.conf||.3,.1));return Math.round(d.reduce((a,c,i)=>a+p[c.v]*w[i],0)/w.reduce((a,b)=>a+b,0))}
+function rating(sc){return sc>=75&&!counts().false?'Mostly Accurate':sc>=45?'Mixed Accuracy':'Mostly Inaccurate'}
+function toast(m){const t=$('#toast');t.textContent=m;t.style.opacity=1;clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.opacity=0,2800)}
+const ICON={landing:'M12 3 3 8v8l9 5 9-5V8z',dashboard:'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',analysis:'M4 6h16v12H4zM10 9l5 3-5 3z',fingerprint:'M12 4a7 7 0 0 1 7 7v2M5 11a7 7 0 0 1 3-5.7M9 20c1-2 1.5-4.5 1.5-7a1.5 1.5 0 0 1 3 0c0 3 .5 5.5 1.5 7',compare:'M7 4v16M17 4v16M7 8h10M7 16h10',graph:'M6 6h.01M18 6h.01M12 18h.01M6 6l6 12 6-12',authenticity:'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z',history:'M4 12a8 8 0 1 0 3-6.2M4 4v4h4M12 8v4l3 2'};
+const NAV=[['landing','Home'],['dashboard','Dashboard'],['analysis','Analysis'],['fingerprint','Fingerprint'],['compare','Compare'],['graph','Evidence graph'],['authenticity','Authenticity'],['history','History']];
+const ico=(k)=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICON[k]}"/></svg>`;
+
+/* ---------------- fingerprint glyph (same construction as the app) ---------------- */
+function glyph(hash,grade,size,list,dur){const c=size/2,R=c-8;const pol=(r,f)=>{const a=f*2*Math.PI-Math.PI/2;return[c+r*Math.cos(a),c+r*Math.sin(a)]};
+ const arc=(r,f0,f1)=>{const[a,b]=pol(r,f0),[x,y]=pol(r,f1);return`M${a} ${b}A${r} ${r} 0 ${f1-f0>.5?1:0} 1 ${x} ${y}`};
+ let o=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Truth Fingerprint emblem, grade ${grade}"><circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="var(--tint)" stroke-width="8"/>`;
+ for(const t of list){const f0=t.s/dur,f1=Math.max(t.e/dur,f0+.012);o+=`<path d="${arc(R,f0,f1)}" stroke="${COLORS[t.v]}" stroke-width="${4+6*(t.conf??.2)}" fill="none"/>`}
+ for(let ring=0;ring<4;ring++){const r=R-16-ring*(size/16);for(let i=0;i<4;i++){const n=parseInt(hash[ring*4+i],16),st=(i+(n%4)/16)/4,len=.06+n/15*.16;o+=`<path d="${arc(r,st,st+len)}" stroke="var(--navy2)" stroke-opacity="${.3+ring*.15}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`}}
+ return o+`<circle cx="${c}" cy="${c}" r="${size*.11}" fill="var(--ink)"/><text x="${c}" y="${c+1}" text-anchor="middle" dominant-baseline="middle" fill="var(--card)" style="font:800 ${size/9}px 'Plus Jakarta Sans',sans-serif">${grade}</text></svg>`}
+
+/* ---------------- views ---------------- */
+const V={};
+V.landing=()=>`<section class="hero"><div><p class="small" style="color:#9fb3d6;margin:0 0 10px">Verify Before You Believe. Think Before You Share.</p><h1>Don’t Just Watch Videos. Verify Their Truth.</h1>
+ <p>AI-powered video fact verification that helps you identify misinformation, analyse claims, and discover trusted evidence.</p>
+ <div class="bar" style="margin-top:18px"><a class="btn pri" href="#dashboard" style="background:#fff;color:var(--navy)">Analyse a Video</a><a class="btn" href="#analysis" style="background:transparent;color:#fff;border-color:#4a6290">See a finished analysis</a></div></div>
+ <div class="card" style="color:var(--ink)"><div class="bar" style="justify-content:space-between"><b>“5 facts you learned in school”</b><span class="chip v-false">Mostly Inaccurate</span></div>
+ <div class="tl" style="margin:16px 0;cursor:default">${CLAIMS.map(c=>`<span class="seg" style="left:${c.s/DUR*100}%;width:${(c.e-c.s)/DUR*100}%;background:${COLORS[c.v]}"></span>`).join('')}</div>
+ ${CLAIMS.slice(0,3).map(c=>`<div class="bar small" style="margin-top:8px"><span class="dot" style="background:${COLORS[c.v]}"></span><span class="mono muted">${fmt(c.s)}</span>${esc(c.text)}</div>`).join('')}</div></section>
+ <div class="feat">${[['Capture','Public links or uploads; audio extracted with FFmpeg.'],['Understand','Whisper transcript; every factual claim with its timestamp.'],['Verify','Evidence search, verbatim quote checks, rules over weighted evidence.'],['Show','Colour-coded truth timeline; click to jump to the moment.'],['Truth Fingerprint','A versioned credibility record you can compare across videos.'],['Telugu, Hindi, English','Original words kept, translated for search, results in your language.'],['Context detector','Out-of-context quotes, misleading statistics, self-contradictions.'],['Media authenticity','Signal checks for splices and lip-sync problems, honest uncertainty.']].map(([h,t])=>`<div class="card"><h3>${h}</h3><p class="small muted" style="margin:6px 0 0">${t}</p></div>`).join('')}</div>`;
+
+V.dashboard=()=>{const k=counts();return`<div class="top"><div><h1>Hello, Demo</h1><p class="sub">Paste a link or upload a video to check its claims.</p></div></div>
+ <div class="grid two"><form class="card" id="submit"><h2>Analyse a video</h2><p class="sub">Public videos only. About 1–3 minutes for a 10-minute video.</p>
+  <div class="tabs" role="tablist" style="margin-top:14px"><button type="button" class="${S.tab==='url'?'on':''}" data-tab="url">Video link</button><button type="button" class="${S.tab==='up'?'on':''}" data-tab="up">Upload file</button></div>
+  <div style="margin-top:14px">${S.tab==='url'?`<label class="lb" for="u">Video URL</label><input class="in" id="u" type="url" value="https://www.youtube.com/watch?v=demo1234567" required><p class="note">YouTube, Vimeo, X, TikTok, Facebook, Instagram, or a direct .mp4/.mp3 link.</p>`
+   :`<label class="lb" for="f">Video file</label><input class="in" id="f" type="file" accept="video/*,audio/*"><p class="note">MP4, MOV, MKV, WebM or audio, up to 500 MB.</p>`}
+  <label class="lb" for="ti" style="margin-top:10px">Title (optional)</label><input class="in" id="ti" value="Myths about science and history"></div>
+  <button class="btn pri" style="margin-top:14px;width:100%;justify-content:center">Start analysis</button><p class="note" id="serr"></p></form>
+ <div class="card"><h2>Your activity</h2><div class="stats" style="margin-top:12px"><div class="stat"><b>2</b><span class="small muted">Videos analysed</span></div><div class="stat"><b>8</b><span class="small muted">Claims checked</span></div><div class="stat"><b>B</b><span class="small muted">Avg. evidence grade</span></div></div>
+  <h3 style="margin-top:16px">Verdict breakdown</h3>${Object.keys(COLORS).map(v=>{const n=k[v]+({verified:2,false:1}[v]||0);return`<div class="hbar"><span>${esc(lab(v,'en'))}</span><span class="m"><i style="width:${n/8*100}%;background:${COLORS[v]}"></i></span><span>${n}</span></div>`}).join('')}</div></div>
+ <form class="card" id="quick" style="margin-top:18px"><h2>Check a single claim</h2><p class="sub">Heard something without a video? Check it against evidence.</p>
+  <div class="bar" style="margin-top:12px;flex-wrap:nowrap"><input class="in" id="q" value="Humans only use ten percent of their brains" aria-label="Claim to check"><button class="btn pri">Check</button></div><div id="qres"></div></form>
+ <div class="card" style="margin-top:18px"><div class="bar" style="justify-content:space-between"><h2>Recent analyses</h2><a href="#history" class="small" style="color:var(--muted)">View all</a></div>${histRows(HISTORY.slice(0,2))}</div>`};
+
+function histRows(list){return list.map(h=>{const tot=Object.values(h.counts).reduce((a,b)=>a+b,0);return`<a class="row" href="${h.status==='done'?(h.id==='b'?'#compare':'#analysis'):'#history'}"><div style="flex:1"><b class="small">${esc(h.title)}</b><div class="note">${h.src} · ${h.when}${tot?` · ${tot} claims`:''}</div></div>
+ ${tot?`<span class="mini">${Object.keys(COLORS).map(v=>h.counts[v]?`<i style="width:${h.counts[v]/tot*100}%;background:${COLORS[v]}"></i>`:'').join('')}</span>`:''}<span class="small" style="width:150px;text-align:right;color:${h.status==='failed'?'var(--bad)':'var(--ink)'};font-weight:600">${h.status==='failed'?'Failed':esc(h.rating)}</span></a>`}).join('')}
+
+V.processing=()=>{const P=S.proc||{i:0,p:0};const st=['Capture video & extract audio','Transcribe speech (Whisper)','Find factual claims','Verify claims with evidence','Check context & build Truth Fingerprint'];
+ return`<div class="top"><div><h1>${esc(P.title||'New analysis')}</h1><p class="sub">${esc(P.url||'')}</p></div></div><div class="card" aria-live="polite"><div class="bar" style="justify-content:space-between"><h2>${P.i<5?st[P.i]:'Analysis complete'}</h2><b class="mono">${P.p}%</b></div><div class="prog"><i style="width:${P.p}%"></i></div>
+ <div class="stages">${st.map((s,i)=>`<div class="stage ${i<P.i?'done':i===P.i?'act':''}"><i>${i<P.i?'✓':i===P.i?'':i+1}</i>${s}</div>`).join('')}</div>
+ <p class="note" style="margin-top:14px">Prototype: this run is simulated and finishes on the sample analysis. The real app runs the same five stages on your video.</p></div>
+ ${P.i>=3?`<div class="card" style="margin-top:18px"><h2>Claims found so far</h2>${CLAIMS.slice(0,Math.min(5,P.i>=4?5:Math.ceil((P.p-50)/10))).map(c=>`<div class="bar small" style="margin-top:8px"><span class="mono muted">${c.code}</span><span class="mono">${fmt(c.s)}</span>${P.i>=4?chip(c.v,'en'):'<span class="chip v-unverified">Checking…</span>'}${esc(c.text)}</div>`).join('')}</div>`:''}`};
+
+V.analysis=()=>{const k=counts(),sc=score(),t=S.lang;
+ return`<div class="top"><div><h1>Demo: ‘Facts you learned in school’</h1><p class="sub">Uploaded file · 0:52 · English · analysed 24 Nov 2026</p></div>
+ <div class="bar"><label class="btn" style="padding:4px 10px"><span class="small muted">Results in</span><select id="lang" style="border:0;background:none;font-weight:600;min-height:32px"><option value="en">English</option><option value="hi">हिन्दी</option><option value="te">తెలుగు</option></select></label>
+ <button class="btn" id="pdf">PDF report</button><a class="btn" href="#graph">Evidence graph</a><a class="btn" href="#authenticity">Authenticity</a></div></div>
+ <div class="grid two"><div class="grid" style="align-content:start">
+  <div><div class="player" id="player">${scene()}<div class="cap" id="cap"></div></div>
+   <div class="ctl"><button class="btn" id="play" aria-label="Play or pause" style="min-width:44px;justify-content:center">${S.playing?'❚❚':'▶'}</button><div class="tl" id="tl" role="list" aria-label="Truth timeline">${CLAIMS.map(c=>`<button role="listitem" class="seg ${S.sel===c.id?'sel':''}" data-c="${c.id}" title="${esc(fmt(c.s)+' · '+lab(c.v,'en')+': '+c.text)}" aria-label="${esc(fmt(c.s)+' '+lab(c.v,'en'))}" style="left:${c.s/DUR*100}%;width:${(c.e-c.s)/DUR*100}%;background:${COLORS[c.v]}"></button>`).join('')}<span class="head" id="head"></span></div><span class="t" id="time">0:00 / 0:52</span></div>
+   <div class="legend">${Object.keys(COLORS).map(v=>`<span class="bar" style="gap:5px"><span class="dot" style="background:${COLORS[v]}"></span>${esc(lab(v,'en'))}</span>`).join('')}</div></div>
+  <div class="card"><div class="bar" style="justify-content:space-between"><div><div class="note">Overall</div><span class="chip v-false" style="font-size:13px">${rating(sc)}</span></div><div style="text-align:right"><div class="note">Truth score</div><b style="font:800 30px 'Plus Jakarta Sans'">${sc}</b></div></div>
+   <p class="small muted">Of ${CLAIMS.length} claims: ${k.verified} verified, ${k.false} false, ${k.misleading} misleading, ${k.unverified} with insufficient evidence. Check the red segments before sharing this video.</p>
+   ${Object.keys(COLORS).map(v=>`<div class="hbar"><span>${esc(lab(v,'en'))}</span><span class="m"><i style="width:${k[v]/CLAIMS.length*100}%;background:${COLORS[v]}"></i></span><span>${k[v]}</span></div>`).join('')}</div>
+  <div class="card"><h2>Transcript</h2><div id="trs" style="max-height:300px;overflow:auto;margin-top:8px">${SEGS.map((s,i)=>{const c=CLAIMS.find(c=>c.s<s[1]&&c.e>s[0]);return`<button class="tr" data-t="${s[0]}" data-i="${i}" style="${c?`box-shadow:inset 3px 0 0 ${COLORS[c.v]}`:''}"><span class="mono">${fmt(s[0])}</span><span>${esc(s[2])}</span></button>`}).join('')}</div></div>
+ </div>
+ <div class="grid" style="align-content:start">${fpCard(true)}
+  <div class="bar" style="justify-content:space-between"><h2>Claims (${CLAIMS.length})</h2><select class="in" id="flt" style="width:auto;min-height:38px;font-size:14px"><option value="all">All verdicts</option>${Object.keys(COLORS).map(v=>`<option value="${v}">${esc(lab(v,'en'))}</option>`).join('')}</select></div>
+  <div class="grid" id="claims" style="gap:12px">${CLAIMS.map(c=>claimCard(c,t)).join('')}</div>
+  <div class="card small muted">Run stats: 41.8s total · capture 3.1s · transcribe 9.4s · claims 6.2s · verify 19.7s · context 3.4s · 7 LLM calls · 10 searches (0% cached). Sample figures.</div>
+ </div></div>`};
+
+function claimCard(c,l){const open=S.open[c.id];const tr=l!=='en'?c[l]:null;
+ return`<article class="claim ${S.sel===c.id?'sel':''}" style="--c:${COLORS[c.v]}" id="card-${c.id}" data-v="${c.v}">
+ <div class="bar"><span class="mono muted">${c.code}</span>${chip(c.v,l)}<button class="chip" style="border:0;background:var(--tint)" data-seek="${c.s}" data-c="${c.id}" aria-label="Play from ${fmt(c.s)}">▶ ${fmt(c.s)}</button><span class="note">${c.type}</span></div>
+ <p style="font-weight:600">${esc(c.text)}</p>${tr?`<p class="small muted" lang="${l}"><b class="note">${l==='hi'?'Hindi':'Telugu'}</b> ${esc(tr)}</p>`:''}
+ <p class="small">${esc(c.why).replace(/\[E(\d)\]/g,(m,n)=>`<button class="cite" data-ev="${c.id}">E${n}</button>`)}</p>
+ <div class="bar small muted" style="margin-top:8px">Confidence ${c.conf==null?'<i>not enough evidence</i>':`<span class="meter"><i style="width:${c.conf*100}%;background:${COLORS[c.v]}"></i></span><b style="color:var(--ink)">${Math.round(c.conf*100)}%</b>`}</div>
+ ${c.flag?`<div class="flag"><b>Context check · ${c.flag.risk} risk</b><br>${esc(c.flag.label)}: ${esc(c.flag.text)}</div>`:''}
+ <button class="btn" style="margin-top:10px;min-height:34px;font-size:13px" data-open="${c.id}">${open?'Hide':'Show'} evidence (${c.ev.length})</button>
+ ${open?(c.ev.length?c.ev.map((e,i)=>evRow(c,e,i)).join(''):'<p class="small muted">No source directly addressed this claim.</p>'):''}</article>`}
+function evRow(c,e,i){const k=c.id+i,o=S.open['t'+k];return`<div class="ev"><div class="bar"><span class="mono" style="background:var(--navy);color:#fff;border-radius:5px;padding:0 5px">E${i+1}</span><span class="chip v-${e.st==='supports'?'verified':e.st==='refutes'?'false':'misleading'}">${e.st[0].toUpperCase()+e.st.slice(1)}</span><button class="trust t-${e.tr.level}" data-trust="${k}">Trust: ${e.tr.level} (${Math.round(e.tr.score*100)}) ${o?'▴':'▾'}</button></div>
+ <a href="${e.u}" target="_blank" rel="noopener" style="display:block;margin-top:6px;font-weight:600;color:var(--ink)">${esc(e.t)} ↗</a><div class="note">Wikipedia · en.wikipedia.org</div><p class="small" style="margin:6px 0 0">${esc(e.sn)} <span class="note">(summary)</span></p>
+ ${o?`<div style="margin-top:8px">${e.tr.signals.map(([n,v,r,s])=>`<div class="sig"><span class="m"><i style="width:${s*100}%"></i></span><span><b>${n}:</b> ${esc(v)}. <span class="muted">${esc(r)}</span></span></div>`).join('')}<p class="note">Domain reputation is one signal, never the whole score.</p></div>`:''}</div>`}
+
+function fpCard(compact){const v=S.versions[S.versions.length-1],k=counts();return`<section class="card"><div class="bar" style="justify-content:space-between"><h2>Truth Fingerprint</h2><button class="chip mono" style="border:0;background:var(--tint)" id="copyfp">LTS-FC2D-EF48-490D</button></div>
+ <div class="bar" style="margin-top:12px;flex-wrap:nowrap;gap:16px">${glyph(v.hash,v.grade,compact?112:150,CLAIMS,DUR)}<div style="flex:1"><div class="note">Claims extracted</div><b style="font:800 28px 'Plus Jakarta Sans'">${CLAIMS.length}</b>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px">${Object.keys(COLORS).map(x=>`<span class="chip v-${x}" style="justify-content:space-between">${esc(lab(x,'en').replace('Insufficient Evidence','Insufficient'))}<b>${k[x]}</b></span>`).join('')}</div></div></div>
+ <div class="small" style="margin-top:12px">Evidence quality <b>Grade ${v.grade}</b> · ${v.grade==='B'&&!S.rechecked?'Good · 67/100':'Good · 74/100'} · hash <span class="mono">${v.hash}</span> · v${v.v}</div>
+ <div class="bar" style="margin-top:10px"><button class="btn pri" id="recheck" ${S.rechecked?'disabled':''}>${S.rechecked?'Re-checked':'Re-check evidence'}</button><a class="btn" href="#compare">Compare with another video</a>${compact?'<a class="btn" href="#fingerprint">Open</a>':''}</div></section>`}
+
+function scene(){return`<svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="bk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d2e4f"/><stop offset="1" stop-color="#0b1428"/></linearGradient><linearGradient id="lt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42629b"/><stop offset="1" stop-color="#293f68"/></linearGradient></defs>
+ <rect width="160" height="90" fill="url(#bk)"/><rect x="96" y="14" width="50" height="34" rx="2" fill="#14213d" stroke="#324d80"/><path d="M100 42l10-12 8 8 6-6 18 10z" fill="#324d80"/><circle cx="136" cy="22" r="3" fill="#97acd0"/>
+ <rect x="0" y="70" width="160" height="20" fill="#0b1428"/><rect x="20" y="62" width="70" height="10" rx="2" fill="#293f68"/>
+ <path d="M40 72c0-16 9-24 19-24s19 8 19 24z" fill="url(#lt)"/><path d="M52 50h14v6c-2 3-12 3-14 0z" fill="#c9a27e"/><ellipse cx="59" cy="38" rx="10" ry="12" fill="#d8b08c"/><path d="M48 36c0-9 5-13 11-13s11 4 11 13c-3-5-7-6-11-6s-8 1-11 6z" fill="#14213d"/>
+ <ellipse cx="59" cy="45" rx="3" ry="${S.playing?1.6:.6}" fill="#7a3b2e"><animate attributeName="ry" values=".6;1.8;.8;1.4;.6" dur=".6s" repeatCount="${S.playing?'indefinite':'0'}"/></ellipse>
+ <rect x="6" y="6" width="22" height="6" rx="1.5" fill="#dc2626"/><text x="17" y="10.4" font-size="3.6" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="700">LIVE CHECK</text></svg>`}
+
+V.fingerprint=()=>`<div class="top"><div><h1>Truth Fingerprint</h1><p class="sub">Demo: ‘Facts you learned in school’ · a versioned record of claims, verdicts and evidence</p></div></div>
+ <div class="grid two"><div>${fpCard(false)}</div><div class="grid" style="align-content:start"><section class="card"><h2>Verification history</h2><div style="margin-top:10px">${S.versions.slice().reverse().map(v=>`<div style="border-left:2px solid var(--line);padding:2px 0 12px 14px;position:relative"><span class="dot" style="position:absolute;left:-6px;top:6px;width:10px;height:10px;background:var(--navy2)"></span>
+ <div class="bar small" style="justify-content:space-between"><b>v${v.v} · <span class="mono">${v.hash}</span> · ${v.trigger}</b><span class="note">${v.when}</span></div><div class="small muted">score ${v.score} · evidence ${v.grade} · ${v.changes?esc(v.changes):'First verification'}</div></div>`).join('')}</div>
+ <p class="note">Each verification gets a SHA-256 content hash. When results change, a new version is recorded instead of overwriting the old one.</p></section>
+ <section class="card"><h2>Claim distribution</h2>${Object.keys(COLORS).map(v=>`<div class="hbar"><span>${esc(lab(v,'en'))}</span><span class="m"><i style="width:${counts()[v]/CLAIMS.length*100}%;background:${COLORS[v]}"></i></span><span>${counts()[v]}</span></div>`).join('')}</section><section class="card"><h2>Original video timestamps</h2><div class="bar" style="margin-top:10px">${CLAIMS.map(c=>`<a class="chip" href="#analysis" data-jump="${c.id}" style="background:var(--tint);color:var(--ink);text-decoration:none"><span class="dot" style="background:${COLORS[c.v]}"></span><span class="mono">${fmt(c.s)}</span></a>`).join('')}</div></section></div></div>`;
+
+V.compare=()=>{const m=[[CLAIMS[0],B_CLAIMS[0],'conflict','Conflicting','Same evidence','Video A’s version is false, video B’s is verified. The same source (en.wikipedia.org) refutes A and supports B, so the two videos are stating opposite things.',null,'refutes','supports'],
+ [CLAIMS[1],B_CLAIMS[1],'agree','Consistent','Same evidence','Both videos make this claim and it is verified in both. Both verdicts rest on the same sources.','8849 vs 8848','supports','supports'],
+ [CLAIMS[2],B_CLAIMS[2],'agree','Consistent','Same evidence','Both videos make this claim and it is false in both. Both verdicts rest on the same sources.',null,'refutes','refutes']];
+ const rc={conflict:'v-false',agree:'v-verified'};
+ return`<div class="top"><div><h1>Compare videos</h1><p class="sub">Shared claims, whether they use the same evidence, and where they conflict.</p></div></div>
+ <div class="card bar" style="gap:14px"><div style="flex:1"><label class="lb" for="ca">Video A</label><select class="in" id="ca"><option>Demo: ‘Facts you learned in school’</option></select></div><div style="flex:1"><label class="lb" for="cb">Video B (ranked by shared claims)</label><select class="in" id="cb"><option>Demo: ‘Space and science myths’ — 3 shared claims</option></select></div></div>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:18px">${[['A','LTS-FC2D-EF48-490D','8cc3281ed9102187',CLAIMS,DUR,'5 claims · evidence B (67) · score 36'],['B','LTS-782E-9337-82D3','d825fd9ae44bb9c1',B_CLAIMS.map((c,i)=>({...c,e:c.s+6.6,conf:[.8,.78,.84][i]})),30,'3 claims · evidence B (75) · score 65']].map(([t,id,h,l,d,meta])=>`<div class="card bar" style="flex-wrap:nowrap">${glyph(h,'B',96,l,d)}<div><div class="note">Video ${t}</div><b class="mono">${id}</b><div class="small muted">${meta}</div></div></div>`).join('')}</div>
+ <div class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--bad) 40%,var(--line))"><h2>3 shared claims, 2 consistent, 1 conflicting. 1 uses different figures.</h2><p class="small muted" style="margin:6px 0 0">2 claims only in A · 0 only in B · average evidence overlap 100% · sources used by both: en.wikipedia.org</p></div>
+ ${m.map(([a,b,r,rl,el,ins,fig,sa,sb])=>`<article class="card" style="margin-top:12px"><div class="bar"><span class="chip ${rc[r]}">${rl}</span><span class="small" style="font-weight:600">${el}</span>${fig?`<span class="chip v-misleading">Different figures: ${fig}</span>`:''}<span class="note" style="margin-left:auto">${r==='conflict'?'88':'94'}% match · semantic</span></div>
+ <div class="pair"><div><div class="bar"><span class="note"><b>VIDEO A</b></span>${chip(a.v,'en')}<a class="mono" href="#analysis" data-jump="${a.id}">▶ ${fmt(a.s)}</a></div><p class="small" style="margin:6px 0 0">${esc(a.text)}</p></div><div><div class="bar"><span class="note"><b>VIDEO B</b></span>${chip(b.v,'en')}<span class="mono">▶ ${fmt(b.s)}</span></div><p class="small" style="margin:6px 0 0">${esc(b.text)}</p></div></div>
+ <p class="small" style="margin:10px 0 0">${ins}</p><div class="ev" style="${sa!==sb?'background:color-mix(in srgb,var(--bad) 8%,var(--paper))':''}">${sa!==sb?'⚠ ':''}<b>en.wikipedia.org</b> · A: ${sa} · B: ${sb}</div></article>`).join('')}`};
+
+V.graph=()=>`<div class="top"><div><h1>Evidence graph</h1><p class="sub">5 claims · 4 sources · 3 related claims in your other video. Click any node.</p></div></div>
+ <div class="grid two" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><div class="gwrap" id="gwrap"></div><aside class="card small" id="gside"></aside></div>`;
+function drawGraph(){const wrap=$('#gwrap');if(!wrap)return;const Wd=Math.max(wrap.clientWidth,760),H=560;
+ const col=[Wd*.03,Wd*.24,Wd*.45,Wd*.75],bw=Math.min(190,Wd*.2),nodes=[],edges=[];
+ const place=(arr,ci,gap,type)=>arr.forEach((n,i)=>nodes.push({...n,type,x:col[ci],y:H/2+(i-(arr.length-1)/2)*gap}));
+ place(B_CLAIMS.map((b,i)=>({id:'r'+i,label:'Space myths',sub:b.text,v:b.v})),0,96,'related');
+ place([{id:'vid',label:'Facts you learned in school',sub:'Uploaded video'}],1,0,'video');
+ place(CLAIMS.map(c=>({id:c.id,label:c.code+' · '+fmt(c.s),sub:c.text,v:c.v})),2,96,'claim');
+ const src=[...new Map(CLAIMS.flatMap(c=>c.ev.map(e=>[e.u,{id:e.u,label:'en.wikipedia.org',sub:e.t}]))).values()];place(src,3,96,'source');
+ CLAIMS.forEach(c=>{edges.push(['vid',c.id,'#9fb3d6','']);c.ev.forEach(e=>edges.push([e.u,c.id,{supports:COLORS.verified,refutes:COLORS.false,mixed:COLORS.misleading}[e.st],e.st]))});
+ edges.push(['c1','r0',COLORS.false,'conflict'],['c2','r1','#6482b5','related'],['c3','r2','#6482b5','related']);
+ const N=Object.fromEntries(nodes.map(n=>[n.id,n])),bh=58;
+ const ed=edges.map(([a,b,c,l])=>{const A=N[a],B=N[b];let x1=A.x+bw,x2=B.x;if(A.x>B.x){x1=A.x;x2=B.x+bw}const y1=A.y,y2=B.y,mx=(x1+x2)/2;return`<path d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}" fill="none" stroke="${c}" stroke-width="${l?2:1.2}" ${l==='conflict'?'stroke-dasharray="6 4"':''}/>`}).join('');
+ const nd=nodes.map(n=>{const bc=n.v?COLORS[n.v]:n.type==='video'?'var(--ink)':'var(--line)';return`<g class="node" data-n="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.label)}"><rect x="${n.x}" y="${n.y-bh/2}" width="${bw}" height="${bh}" rx="10" fill="var(--card)" stroke="${S.gsel===n.id?'var(--ink)':bc}" stroke-width="${S.gsel===n.id?3:2}"/>
+  <text x="${n.x+10}" y="${n.y-8}" font-size="12" font-weight="700" fill="var(--ink)">${esc(n.label.length>bw/7.4?n.label.slice(0,Math.floor(bw/7.4)-1)+'…':n.label)}</text><text x="${n.x+10}" y="${n.y+10}" font-size="11" fill="var(--muted)">${esc(n.sub.slice(0,Math.floor(bw/6.4)))}${n.sub.length>bw/6.4?'…':''}</text></g>`}).join('');
+ wrap.innerHTML=`<svg width="${Wd}" height="${H}" role="img" aria-label="Evidence relationship graph">${ed}${nd}</svg>`;
+ const sel=nodes.find(n=>n.id===S.gsel);const con=sel?edges.filter(e=>e[0]===sel.id||e[1]===sel.id):[];
+ $('#gside').innerHTML=sel?`<div class="note">${sel.type}</div><b>${esc(sel.label)}</b><p>${esc(sel.sub)}</p>${sel.v?chip(sel.v,'en'):''}<p class="muted">${con.length} connection(s): ${con.map(e=>e[3]||'makes').join(', ')}</p>${sel.type==='claim'?`<a class="btn" href="#analysis" data-jump="${sel.id}">Open at timestamp</a>`:''}`
+  :`<h2>How to read it</h2>${[['supports',COLORS.verified],['refutes',COLORS.false],['mixed',COLORS.misleading],['conflicts with another video (dashed)',COLORS.false],['related claim in another video','#6482b5']].map(([l,c])=>`<div class="bar" style="margin-top:8px"><span style="width:22px;height:3px;background:${c};display:inline-block"></span>${l}</div>`).join('')}<p class="note" style="margin-top:12px">Columns: your other videos → this video → claims → sources.</p>`;
+ wrap.querySelectorAll('.node').forEach(g=>{const f=()=>{S.gsel=g.dataset.n;drawGraph()};g.addEventListener('click',f);g.addEventListener('keydown',e=>{if(e.key==='Enter')f()})})}
+
+V.authenticity=()=>{const a=S.auth;return`<div class="top"><div><h1>Media authenticity</h1><p class="sub">Signs of editing or manipulation in the video and audio. Separate from fact verification.</p></div><button class="btn pri" id="runauth" ${a==='run'?'disabled':''}>${a==='run'?'Analysing…':a?'Run again':'Analyse this video'}</button></div>
+ ${!a?`<div class="card small muted">Not analysed yet. The checks look for audio splices, frame-timing gaps, cuts that line up with audio breaks, lip-sync problems and face inconsistencies.</div>`
+ :a==='run'?`<div class="card"><div class="stage act"><i></i>Analysing frames, audio and lip-sync…</div></div>`
+ :`<div class="banner" style="background:var(--tint);border-color:var(--line)"><b style="font-size:17px">No obvious manipulation indicators detected</b><p class="small" style="margin:4px 0 0">No obvious manipulation indicators in the checks that ran. This does not prove the video is authentic.</p><p class="note">No trained deepfake classifier configured; signal checks only. Analysed the first 0:52.</p></div>
+ <div class="grid two" style="margin-top:18px"><section class="card"><h2>Indicators</h2><div class="ev"><div class="bar"><span class="chip v-unverified">info</span><b>Scene cuts</b><span class="note" style="margin-left:auto">reliability: moderate</span></div><p class="small" style="margin:6px 0 0">2 hard cuts (2.3 per minute). Normal in edited videos; listed so reviewers can inspect them.</p><div class="bar"><span class="chip mono" style="background:var(--tint)">0:10</span><span class="chip mono" style="background:var(--tint)">0:36</span></div></div>
+  <p class="small muted">No audio splices, timing gaps or lip-sync problems found.</p></section>
+ <section class="card"><h2>Checks</h2>${[['Audio splices & silence','assessed'],['Frame timing','assessed'],['Scene cuts','assessed'],['Face consistency','assessed'],['Lip-sync (audio-video)','assessed']].map(([k,v])=>`<div class="bar small" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span class="muted">${k}</span><b>${v}</b></div>`).join('')}<p class="note">1280×720 · 25 fps · h264 / aac. Sample result.</p></section></div>
+ <section class="card" style="margin-top:18px"><h2>Limitations</h2><ul class="small muted">${['These are signal checks, not a trained deepfake classifier; ordinary editing can trigger them.','High-quality face swaps and voice clones can pass all of these checks.','Lip-sync checks need a clearly visible, mostly frontal face.','Use this as a prompt for closer inspection, never as proof that a video is real or fake.'].map(x=>`<li>${x}</li>`).join('')}</ul></section>`}`};
+
+V.history=()=>`<div class="top"><div><h1>Analysis history</h1><p class="sub">Every video you’ve checked, newest first.</p></div></div><div class="card bar"><input class="in" id="hs" placeholder="Search by title" aria-label="Search analyses" style="flex:1"></div><div class="card" style="margin-top:12px" id="hl">${histRows(HISTORY)}</div>`;
+
+/* ---------------- render + router ---------------- */
+let tick=null;
+function render(){const name=(location.hash||'#analysis').slice(1);const view=V[name]?name:'analysis';
+ $('#nav').innerHTML=NAV.map(([k,l])=>`<a href="#${k}" class="${k===view||(view==='processing'&&k==='dashboard')?'on':''}" aria-label="${l}">${ico(k)}<span class="lbl">${l}</span></a>`).join('');
+ $('#view').innerHTML=V[view]();bind(view);}
+function setT(t){S.t=Math.max(0,Math.min(DUR,t));const h=$('#head');if(!h)return;h.style.left=(S.t/DUR*100)+'%';$('#time').textContent=fmt(S.t)+' / 0:52';
+ const seg=SEGS.find(s=>S.t>=s[0]&&S.t<s[1])||SEGS[SEGS.length-1];$('#cap').textContent=S.t>0?seg[2]:'';
+ document.querySelectorAll('.tr').forEach(b=>b.classList.toggle('now',+b.dataset.t===seg[0]&&S.t>0))}
+function play(on){S.playing=on;clearInterval(tick);if(on){tick=setInterval(()=>{if(S.t>=DUR){play(false);return}setT(S.t+.25)},250)}const p=$('#player');if(p){p.querySelector('svg').outerHTML=scene();$('#play').textContent=on?'❚❚':'▶'}}
+function select(id,seek){S.sel=id;const c=CLAIMS.find(x=>x.id===id);S.open[id]=true;const box=$('#claims');if(box){box.innerHTML=CLAIMS.map(x=>claimCard(x,S.lang)).join('');document.querySelectorAll('.seg').forEach(s=>s.classList.toggle('sel',s.dataset.c===id));setTimeout(()=>$('#card-'+id)?.scrollIntoView({behavior:'smooth',block:'nearest'}),30)}if(seek&&c){setT(Math.max(0,c.s-1));play(true)}}
+function bind(view){
+ if(view==='analysis'){setT(S.t);$('#lang').value=S.lang;
+  $('#play').onclick=()=>play(!S.playing);
+  $('#tl').onclick=(e)=>{const seg=e.target.closest('.seg');if(seg){select(seg.dataset.c,true);return}const r=e.currentTarget.getBoundingClientRect();setT((e.clientX-r.left)/r.width*DUR)};
+  $('#trs').onclick=(e)=>{const b=e.target.closest('.tr');if(!b)return;setT(+b.dataset.t);play(true);const c=CLAIMS.find(c=>c.s<SEGS[b.dataset.i][1]&&c.e>SEGS[b.dataset.i][0]);if(c)select(c.id,false)};
+  $('#claims').onclick=(e)=>{const t=e.target;if(t.dataset.seek){select(t.dataset.c,true)}else if(t.dataset.open){S.open[t.dataset.open]=!S.open[t.dataset.open];$('#claims').innerHTML=CLAIMS.map(x=>claimCard(x,S.lang)).join('')}else if(t.dataset.ev){S.open[t.dataset.ev]=true;select(t.dataset.ev,false)}else if(t.closest('[data-trust]')){const k=t.closest('[data-trust]').dataset.trust;S.open['t'+k]=!S.open['t'+k];$('#claims').innerHTML=CLAIMS.map(x=>claimCard(x,S.lang)).join('')}};
+  $('#flt').onchange=(e)=>document.querySelectorAll('.claim').forEach(c=>c.style.display=e.target.value==='all'||c.dataset.v===e.target.value?'':'none');
+  $('#lang').onchange=(e)=>{S.lang=e.target.value;$('#claims').innerHTML=CLAIMS.map(x=>claimCard(x,S.lang)).join('');toast(S.lang==='en'?'Showing English':'Machine translation shown alongside the original. Verdicts never depend on it.')};
+  $('#pdf').onclick=()=>toast('Prototype: the app generates a PDF with verdicts, evidence, fingerprint and limitations (POST /api/reports/generate).');
+  if(S.sel)select(S.sel,false)}
+ if($('#recheck'))$('#recheck').onclick=recheck;
+ if($('#copyfp'))$('#copyfp').onclick=async()=>{try{await navigator.clipboard.writeText('LTS-FC2D-EF48-490D');toast('Fingerprint ID copied')}catch{toast('LTS-FC2D-EF48-490D')}};
+ document.querySelectorAll('[data-jump]').forEach(a=>a.addEventListener('click',()=>{S.sel=a.dataset.jump;S.open[a.dataset.jump]=true;const c=CLAIMS.find(c=>c.id===a.dataset.jump);if(c)S.t=Math.max(0,c.s-1)}));
+ if(view==='dashboard'){document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;render()});
+  $('#submit').onsubmit=(e)=>{e.preventDefault();const u=$('#u');if(u&&!/^(https?:\/\/)(www\.|m\.)?(youtube\.com|youtu\.be|vimeo\.com|x\.com|twitter\.com|tiktok\.com|facebook\.com|instagram\.com|dailymotion\.com)\//i.test(u.value)&&!/\.(mp4|webm|mov|mkv|mp3|m4a|wav)(\?|$)/i.test(u.value)){$('#serr').textContent='Unsupported link. Use a public video from a supported platform, a direct media file link, or upload the file.';$('#serr').style.color='var(--bad)';return}
+   startProc($('#ti').value||'New analysis',u?u.value:'Uploaded file')};
+  $('#quick').onsubmit=(e)=>{e.preventDefault();const q=$('#q').value.toLowerCase();const hit=CLAIMS.find(c=>c.text.toLowerCase().split(' ').filter(w=>w.length>4&&q.includes(w)).length>=3);
+   $('#qres').innerHTML=hit&&hit.v!=='unverified'?`<div class="ev" style="margin-top:12px">${chip(hit.v,'en')} <b class="small">${Math.round(hit.conf*100)}% confidence</b><p class="small" style="margin:6px 0 0">${esc(hit.why.replace(/ \[E\d\]/g,''))}</p><a class="small" href="${hit.ev[0].u}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(hit.ev[0].t)} ↗</a></div>`
+   :`<div class="ev" style="margin-top:12px">${chip('unverified','en')}<p class="small" style="margin:6px 0 0">The prototype only knows its sample claims. The real app searches the web for any claim and says “Insufficient Evidence” when sources don’t settle it.</p></div>`}}
+ if(view==='graph'){drawGraph();const ro=new ResizeObserver(()=>drawGraph());ro.observe($('#gwrap'))}
+ if(view==='authenticity'&&$('#runauth'))$('#runauth').onclick=()=>{S.auth='run';render();setTimeout(()=>{S.auth='done';if(location.hash==='#authenticity')render()},2200)};
+ if(view==='history')$('#hs').oninput=(e)=>{$('#hl').innerHTML=histRows(HISTORY.filter(h=>h.title.toLowerCase().includes(e.target.value.toLowerCase())))||'<p class="small muted">No matching analyses.</p>'};
+}
+function recheck(){if(S.rechecked)return;const b=$('#recheck');b.disabled=true;b.textContent='Re-checking…';
+ setTimeout(()=>{const w=CLAIMS[4];Object.assign(w,{v:'verified',conf:.79,why:'Standard references give 100 °C as the boiling point of water at standard sea-level pressure [E1].',ev:[{t:'Boiling point',u:W('Boiling_point'),st:'supports',sn:'At one standard atmosphere, water boils at about 100 °C.',tr:trust('medium',.7,0)}]});
+  S.rechecked=true;S.versions.push({v:2,hash:'5e1b9a07c3d24f86',when:'just now',trigger:'Evidence re-check',score:score(),grade:'B',changes:'1 verdict change: CLM005 Insufficient Evidence → Verified'});
+  render();toast('Re-check found new evidence: CLM005 is now Verified. Fingerprint v2 recorded.')},1800)}
+function startProc(title,url){S.proc={i:0,p:0,title,url};location.hash='#processing';const steps=[[0,12],[1,30],[2,48],[3,70],[3,86],[4,96],[5,100]];let k=0;
+ const go=()=>{if(location.hash!=='#processing')return;const[i,p]=steps[k++];S.proc.i=i;S.proc.p=p;render();if(k<steps.length)setTimeout(go,900);else setTimeout(()=>{S.sel=null;location.hash='#analysis';toast('Analysis complete (sample result).')},900)};go()}
+window.addEventListener('hashchange',()=>{play(false);render();$('#view').focus({preventScroll:true});window.scrollTo(0,0)});
+render();
+}
+</script>
+</body>
+</html>
