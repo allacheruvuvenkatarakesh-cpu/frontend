@@ -1,0 +1,15 @@
+{
+  "description": "Synthetic transcript used by tests and the demo seed. Mixes true, false, misleading and non-checkable statements.",
+  "language": "en",
+  "segments": [
+    {"id": 0, "start": 0.0, "end": 4.2, "text": "Hey everyone, welcome back to the channel."},
+    {"id": 1, "start": 4.2, "end": 10.8, "text": "Today I want to talk about some facts you probably learned in school."},
+    {"id": 2, "start": 10.8, "end": 17.5, "text": "First, the Great Wall of China is the only man-made structure visible from the Moon with the naked eye."},
+    {"id": 3, "start": 17.5, "end": 23.9, "text": "Second, Mount Everest is the highest mountain above sea level at about 8,849 metres."},
+    {"id": 4, "start": 23.9, "end": 30.1, "text": "And did you know humans only use ten percent of their brains?"},
+    {"id": 5, "start": 30.1, "end": 36.4, "text": "Napoleon Bonaparte was famously tiny, much shorter than the average man of his time."},
+    {"id": 6, "start": 36.4, "end": 41.0, "text": "I think that makes history way more fun, honestly."},
+    {"id": 7, "start": 41.0, "end": 47.6, "text": "Water boils at 100 degrees Celsius at sea level."},
+    {"id": 8, "start": 47.6, "end": 52.0, "text": "Smash that like button and subscribe!"}
+  ]
+}

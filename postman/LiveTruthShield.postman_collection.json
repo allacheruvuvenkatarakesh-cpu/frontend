@@ -1,0 +1,530 @@
+{
+  "info": {
+    "name": "LiveTruth Shield API",
+    "description": "Run 'Register' or 'Login' first: the test script stores the token in {{token}}. Then submit a video and poll status.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "videoId",
+      "value": ""
+    },
+    {
+      "key": "fingerprintId",
+      "value": ""
+    },
+    {
+      "key": "videoIdB",
+      "value": ""
+    },
+    {
+      "key": "reportId",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test{{$timestamp}}@example.com\",\n  \"password\": \"Sup3rSecret!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('token', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@livetruth.app\",\n  \"password\": \"DemoPass123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - wrong password (expect 401)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@livetruth.app\",\n  \"password\": \"wrong\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "item": [
+        {
+          "name": "Submit URL",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/videos/url",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://www.youtube.com/watch?v=REPLACE_WITH_VIDEO_ID\",\n  \"title\": \"Postman test\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('202 Accepted', () => pm.response.to.have.status(202));",
+                  "pm.collectionVariables.set('videoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit unsupported URL (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/videos/url",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"url\": \"https://example.com/news-article\" }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('422', () => pm.response.to.have.status(422));",
+                  "pm.test('code', () => pm.expect(pm.response.json().error.code).to.eql('unsupported_source'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload file",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/videos/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "title",
+                  "value": "Uploaded clip",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('videoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Media token",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/videos/{{videoId}}/media-token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analyses",
+      "item": [
+        {
+          "name": "Status (poll)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/analyses/{{videoId}}/status"
+          }
+        },
+        {
+          "name": "Full result",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/analyses/{{videoId}}"
+          }
+        },
+        {
+          "name": "History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analyses?page=1&page_size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analyses"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/analyses/stats"
+          }
+        },
+        {
+          "name": "Retry",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/analyses/{{videoId}}/retry"
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/analyses/{{videoId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Truth Fingerprint",
+      "item": [
+        {
+          "name": "Fingerprint",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/analyses/{{videoId}}/fingerprint"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fingerprintId', pm.response.json().fingerprint_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lookup by code",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/fingerprints/{{fingerprintId}}"
+          }
+        },
+        {
+          "name": "Compare candidates",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/compare/candidates?video_id={{videoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.json().length) pm.collectionVariables.set('videoIdB', pm.response.json()[0].video_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compare two videos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/compare?a={{videoId}}&b={{videoIdB}}"
+          }
+        },
+        {
+          "name": "Compare same video (expect 422)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/compare?a={{videoId}}&b={{videoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Advanced features",
+      "item": [
+        {
+          "name": "Translation (Telugu)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/analyses/{{videoId}}/translation?lang=te"
+          }
+        },
+        {
+          "name": "Start media authenticity",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/deepfake/analyse",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"video_id\": \"{{videoId}}\" }"
+            }
+          }
+        },
+        {
+          "name": "Media authenticity result",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/deepfake/{{videoId}}"
+          }
+        },
+        {
+          "name": "Evidence graph",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/evidence-graph/{{videoId}}"
+          }
+        },
+        {
+          "name": "Generate PDF report",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/reports/generate",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"video_id\": \"{{videoId}}\" }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('reportId', pm.response.json().report_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports/{{reportId}}"
+          }
+        },
+        {
+          "name": "Check a single claim",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/verification/check",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"claim\": \"The Great Wall of China is visible from the Moon with the naked eye\" }"
+            }
+          }
+        },
+        {
+          "name": "Brief alias: timeline",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/timeline/{{videoId}}"
+          }
+        },
+        {
+          "name": "Brief alias: claims",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/claims/{{videoId}}"
+          }
+        },
+        {
+          "name": "Update profile language",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/auth/me",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"preferred_language\": \"te\" }"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
