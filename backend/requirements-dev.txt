@@ -2,4 +2,5 @@
 pytest==8.3.4
 pytest-asyncio==0.25.0
 mongomock-motor==0.0.34
+pypdf==5.1.0          # PDF report test reads the generated file back
 ruff==0.8.4

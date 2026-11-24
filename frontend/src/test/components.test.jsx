@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import ClaimCard from '../components/analysis/ClaimCard.jsx'
@@ -22,7 +22,7 @@ describe('TruthTimeline', () => {
   it('renders one segment per claim and reports clicks', () => {
     const onSelect = vi.fn()
     render(<TruthTimeline items={ITEMS} duration={60} onSelect={onSelect} />)
-    const segs = screen.getAllByRole('listitem')
+    const segs = within(screen.getByRole('list', { name: /Claims along the video timeline/ })).getAllByRole('listitem')
     expect(segs).toHaveLength(2)
     fireEvent.click(screen.getByLabelText(/0:40 — Verified/))
     expect(onSelect).toHaveBeenCalledWith(ITEMS[1])

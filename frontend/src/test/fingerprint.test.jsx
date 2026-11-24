@@ -34,7 +34,7 @@ describe('TruthFingerprintCard', () => {
     expect(onSeek).toHaveBeenCalledWith(FP.timestamps[0])
     expect(screen.getByText(/1 verdict change/)).toBeInTheDocument()
     fireEvent.click(screen.getByText(/1 verdict change/))
-    expect(screen.getByText('Water boils at 100 °C')).toBeInTheDocument()
+    expect(screen.getByText((_, el) => el?.tagName === 'LI' && el.textContent.includes('Water boils at 100 °C'))).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Compare with another video/ })).toHaveAttribute('href', '/compare?a=va')
   })
 })

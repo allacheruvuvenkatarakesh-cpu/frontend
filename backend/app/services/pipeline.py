@@ -157,10 +157,11 @@ async def _persist(video_id: str, payload: dict) -> None:
     if payload.get("embedding"):
         # kept so the Truth Fingerprint comparison can match claims across videos by meaning
         await db[mongo.CLAIMS].update_one({"_id": claim["_id"]}, {"$set": {"embedding": payload["embedding"]}})
-    await db[mongo.VERIFICATION_RESULTS].replace_one(
+    # update in place: MongoDB forbids changing _id on an existing result (re-checks and retries)
+    await db[mongo.VERIFICATION_RESULTS].update_one(
         {"claim_id": claim["_id"]},
-        {"_id": new_id(), "claim_id": claim["_id"], "video_id": video_id, **payload["result"],
-         "model": get_settings().LLM_MODEL, "created_at": now},
+        {"$set": {"video_id": video_id, **payload["result"], "model": get_settings().LLM_MODEL, "created_at": now},
+         "$setOnInsert": {"_id": new_id()}},
         upsert=True,
     )
     await db[mongo.EVIDENCE_SOURCES].delete_many({"claim_id": claim["_id"]})
