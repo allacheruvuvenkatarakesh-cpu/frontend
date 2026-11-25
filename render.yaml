@@ -6,12 +6,9 @@ services:
     runtime: docker
     rootDir: backend
     dockerfilePath: ./Dockerfile
-    plan: starter            # a persistent disk needs a paid instance; see docs/GO_LIVE.md for the free option
+    plan: free               # free: sleeps when idle; /data is not persistent (uploads/reports lost on restart).
+                             # For persistence: plan: starter + a disk block (mountPath /data, sizeGB 5).
     healthCheckPath: /api/health
-    disk:
-      name: livetruth-data
-      mountPath: /data
-      sizeGB: 5
     envVars:
       - key: APP_ENV
         value: production
@@ -51,6 +48,7 @@ services:
   - type: web
     name: livetruth-web
     runtime: static
+    plan: free
     rootDir: frontend
     buildCommand: npm install --no-audit --no-fund && npm run build
     staticPublishPath: dist
