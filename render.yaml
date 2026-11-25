@@ -47,8 +47,7 @@ services:
 
   - type: web
     name: livetruth-web
-    runtime: static
-    plan: free
+    runtime: static          # static sites are free and have no plan setting
     rootDir: frontend
     buildCommand: npm install --no-audit --no-fund && npm run build
     staticPublishPath: dist
